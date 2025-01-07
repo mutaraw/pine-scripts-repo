@@ -1,0 +1,106 @@
+//@version=6
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// Copyright © 2025 Tugume William Mutara (watchdawg2025). All rights reserved.
+// Unauthorized copying, sharing, or modification of this script is strictly prohibited.
+
+// *** Good traders try to avoid losing money ***
+// *** Great traders accept they will lose money ***
+indicator("William's Buy & Sell Signals - Indicator - v1", overlay = true)
+
+// === alternate resolution inputs ===
+useres = true
+intres = 10
+stratres = timeframe.ismonthly ? str.tostring(timeframe.multiplier * intres, '###m') : timeframe.isweekly ? str.tostring(timeframe.multiplier * intres, '###w') : timeframe.isdaily ? str.tostring(timeframe.multiplier * intres, '###d') : timeframe.isintraday ? str.tostring(timeframe.multiplier * intres, '####') : '60'
+
+// === smma function ===
+f_smma(src, length) =>
+    var float smma = na
+    sma_1 = ta.sma(src, length)
+    smma := na(smma) ? sma_1 : (smma * (length - 1) + src) / length
+    smma
+
+// === security wrapper for repeat calls ===
+reso(exp, use, res) =>
+    security_1 = request.security(syminfo.tickerid, res, exp, gaps = barmerge.gaps_off, lookahead = barmerge.lookahead_on)
+    use ? security_1 : exp
+
+// === generate ma series ===
+malength = 2
+closeseries = f_smma(close, malength)
+openseries = f_smma(open, malength)
+
+// === get alternate resolution series ===
+closeseriesalt = reso(closeseries, useres, stratres)
+openseriesalt = reso(openseries, useres, stratres)
+
+// === high/low series setup ===
+highseries = f_smma(high, malength)
+lowseries = f_smma(low, malength)
+
+// === get alternate resolution series for high/low ===
+highseriesalt = reso(highseries, useres, stratres)
+lowseriesalt = reso(lowseries, useres, stratres)
+
+// === alternate resolution series crosses ===
+xlong = ta.crossover(closeseriesalt, openseriesalt)
+xshort = ta.crossunder(closeseriesalt, openseriesalt)
+longcond = xlong
+shortcond = xshort
+
+// === momentum settings ===
+momlength = 2
+momprice = closeseriesalt
+momentum(seria, length) =>
+    mom = seria - seria[length]
+    mom
+mom0 = momentum(momprice, momlength)
+mom1 = momentum(mom0, 1)
+
+// === rsi settings ===
+rsilength = 2
+oversold = 20
+overbought = 80
+rsiprice = closeseriesalt
+vrsi = ta.rsi(rsiprice, rsilength)
+longrsi = ta.crossover(vrsi, oversold)
+shortrsi = ta.crossunder(vrsi, overbought)
+
+// === bollinger bands ===
+bollingersource = closeseriesalt
+bollingerlength = 2
+mult = 2.0
+basis = f_smma(bollingersource, bollingerlength)
+dev = mult * ta.stdev(bollingersource, bollingerlength)
+upper = basis + dev
+lower = basis - dev
+longbc = ta.crossover(bollingersource, lower)
+shortbc = ta.crossunder(bollingersource, upper)
+
+// === price channel strategy ===
+pcslength = 2
+hh = ta.highest(highseries, pcslength)
+ll = ta.lowest(lowseries, pcslength)
+longbreakoutcond = closeseriesalt > hh
+shortbreakoutcond = closeseriesalt < ll
+
+// === channel breakout strategy ===
+cbslength = 2
+upbound = ta.highest(highseries, cbslength)
+downbound = ta.lowest(lowseries, cbslength)
+longcbsbreakoutcond = closeseriesalt > upbound + syminfo.mintick
+shortcbsbreakoutcond = closeseriesalt < downbound - syminfo.mintick
+
+// === execution logic ===
+buy_signal = longcond and longrsi and mom0 > 0 and mom1 > 0 and longbc and longbreakoutcond and longcbsbreakoutcond
+sell_signal = shortcond and shortrsi and mom0 < 0 and mom1 < 0 and shortbc and shortbreakoutcond and shortcbsbreakoutcond
+
+// === signal labels ===
+if buy_signal
+    label.new(bar_index, low - 10, text = "Buy", style=label.style_label_up, color=color.teal, size=size.tiny)
+
+if sell_signal
+    label.new(bar_index, high + 10, text = "Sell", style=label.style_label_down, color=color.red, size=size.tiny)
+
+// === alert conditions ===
+alertcondition(buy_signal, title="Buy Signal", message="Buy")
+alertcondition(sell_signal, title="Sell Signal", message="Sell")
