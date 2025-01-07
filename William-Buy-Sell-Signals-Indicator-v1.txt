@@ -1,5 +1,5 @@
 //@version=6
-// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// This Pine Script™ code is subject to the terms:
 // Copyright © 2025 Tugume William Mutara (watchdawg2025). All rights reserved.
 // Unauthorized copying, sharing, or modification of this script is strictly prohibited.
 
@@ -9,7 +9,7 @@ indicator("William's Buy & Sell Signals - Indicator - v1", overlay = true)
 
 // === alternate resolution inputs ===
 useres = true
-intres = 10
+intres = input.int(10, title="Timeframe Multiplier eg. 10min, 60min", tooltip="This value determines the multiplier for the timeframe resolution.")
 stratres = timeframe.ismonthly ? str.tostring(timeframe.multiplier * intres, '###m') : timeframe.isweekly ? str.tostring(timeframe.multiplier * intres, '###w') : timeframe.isdaily ? str.tostring(timeframe.multiplier * intres, '###d') : timeframe.isintraday ? str.tostring(timeframe.multiplier * intres, '####') : '60'
 
 // === smma function ===
@@ -25,7 +25,7 @@ reso(exp, use, res) =>
     use ? security_1 : exp
 
 // === generate ma series ===
-malength = 2
+malength = input.int(2, title="Moving Average Length", tooltip="Length for the Moving Average (MA) series.")
 closeseries = f_smma(close, malength)
 openseries = f_smma(open, malength)
 
@@ -48,7 +48,7 @@ longcond = xlong
 shortcond = xshort
 
 // === momentum settings ===
-momlength = 2
+momlength = input.int(2, title="Momentum Length", tooltip="Length for the momentum calculation.")
 momprice = closeseriesalt
 momentum(seria, length) =>
     mom = seria - seria[length]
@@ -57,7 +57,7 @@ mom0 = momentum(momprice, momlength)
 mom1 = momentum(mom0, 1)
 
 // === rsi settings ===
-rsilength = 2
+rsilength = input.int(2, title="Relative Strength Index Length", tooltip="Length for the Relative Strength Index calculation.")
 oversold = 20
 overbought = 80
 rsiprice = closeseriesalt
@@ -67,7 +67,7 @@ shortrsi = ta.crossunder(vrsi, overbought)
 
 // === bollinger bands ===
 bollingersource = closeseriesalt
-bollingerlength = 2
+bollingerlength = input.int(2, title="Bollinger Bands Length", tooltip="Length for the Bollinger Bands calculation.")
 mult = 2.0
 basis = f_smma(bollingersource, bollingerlength)
 dev = mult * ta.stdev(bollingersource, bollingerlength)
@@ -77,14 +77,14 @@ longbc = ta.crossover(bollingersource, lower)
 shortbc = ta.crossunder(bollingersource, upper)
 
 // === price channel strategy ===
-pcslength = 2
+pcslength = input.int(2, title="Price Channel Length", tooltip="Length for the Price Channel strategy.")
 hh = ta.highest(highseries, pcslength)
 ll = ta.lowest(lowseries, pcslength)
 longbreakoutcond = closeseriesalt > hh
 shortbreakoutcond = closeseriesalt < ll
 
 // === channel breakout strategy ===
-cbslength = 2
+cbslength = input.int(2, title="Channel Breakout Length", tooltip="Length for the Channel Breakout strategy.")
 upbound = ta.highest(highseries, cbslength)
 downbound = ta.lowest(lowseries, cbslength)
 longcbsbreakoutcond = closeseriesalt > upbound + syminfo.mintick
