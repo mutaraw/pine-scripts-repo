@@ -34,7 +34,7 @@ openseries = f_smma(open, malength)
 closeseriesalt = reso(closeseries, useres, stratres)
 openseriesalt = reso(openseries, useres, stratres)
 
-// vwap
+// vwap calculation(tradingview)
 hideonDWM = input(false, title="Hide VWAP on 1D or Above", group="VWAP Settings", display = display.data_window)
 var anchor = input.string(defval = "Session", title="Anchor Period",
  options=["Session", "Week", "Month", "Quarter", "Year", "Decade", "Century", "Earnings", "Dividends", "Splits"], group="VWAP Settings")
@@ -117,15 +117,6 @@ xshort = ta.crossunder(closeseriesalt, vwapValue)
 longcond = xlong
 shortcond = xshort
 
-// === momentum settings ===
-momlength = input.int(2, title="Momentum Length", tooltip="Length for the momentum calculation.")
-momprice = closeseriesalt
-momentum(seria, length) =>
-    mom = seria - seria[length]
-    mom
-mom0 = momentum(momprice, momlength)
-mom1 = momentum(mom0, 1)
-
 // === high/low series setup ===
 highseries = f_smma(high, malength)
 lowseries = f_smma(low, malength)
@@ -145,8 +136,8 @@ longcbsbreakoutcond = closeseriesalt > upbound + syminfo.mintick
 shortcbsbreakoutcond = closeseriesalt < downbound - syminfo.mintick
 
 // === execution logic ===
-buy_signal = longcond and mom0 > 0 and mom1 > 0 and longbreakoutcond and longcbsbreakoutcond
-sell_signal = shortcond and mom0 < 0 and mom1 < 0 and shortbreakoutcond and shortcbsbreakoutcond
+buy_signal = longcond and longbreakoutcond and longcbsbreakoutcond
+sell_signal = shortcond and shortbreakoutcond and shortcbsbreakoutcond
 
 // === entry and exit conditions ===
 if buy_signal == true
